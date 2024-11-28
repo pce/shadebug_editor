@@ -4,6 +4,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
 #include <lunasvg.h>  // LunaSVG library header
 
 // Window resize callback
@@ -11,11 +12,28 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-// Function to load and render SVG
+// Function to create an OpenGL texture from LunaSVG Bitmap
+GLuint CreateTextureFromBitmap(const lunasvg::Bitmap& bitmap) {
+    GLuint texture_id = 0;
+    
+    glGenTextures(1, &texture_id); // Generate a texture ID
+    glBindTexture(GL_TEXTURE_2D, texture_id); // Bind the texture
+
+    // Upload pixel data to the texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.width(), bitmap.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap.data());
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0); // Unbind the texture
+
+    return texture_id;
+}
+
+// Render the SVG and upload it as a texture
 bool RenderSVG(const std::string& svg_data, float width, float height, ImDrawList* draw_list, ImVec2 canvas_p0, ImVec2 canvas_p1) {
     using namespace lunasvg;
 
-    // Load the SVG document
     auto document = Document::loadFromData(svg_data);
     if (!document) {
         std::cerr << "Failed to load SVG document" << std::endl;
@@ -24,16 +42,24 @@ bool RenderSVG(const std::string& svg_data, float width, float height, ImDrawLis
 
     // Render the SVG document to a bitmap
     auto bitmap = document->renderToBitmap(width, height);
-    
-    // Check if the bitmap is valid by checking its dimensions
     if (bitmap.width() == 0 || bitmap.height() == 0) {
         std::cerr << "Failed to render SVG to a valid bitmap" << std::endl;
         return false;
     }
 
-    // Render the bitmap (SVG image) onto the ImGui canvas
-    // Cast the bitmap data to ImTextureID
-    draw_list->AddImage((ImTextureID)(uintptr_t)bitmap.data(), canvas_p0, canvas_p1);
+    // Create an OpenGL texture from the bitmap
+    GLuint texture_id = CreateTextureFromBitmap(bitmap);
+    if (texture_id == 0) {
+        std::cerr << "Failed to create OpenGL texture from SVG bitmap" << std::endl;
+        return false;
+    }
+
+    // Render the texture in ImGui
+    draw_list->AddImage((ImTextureID)(uintptr_t)texture_id, canvas_p0, canvas_p1);
+
+    // Cleanup the texture (optional, depending on how you manage textures)
+    glDeleteTextures(1, &texture_id);
+
     return true;
 }
 
