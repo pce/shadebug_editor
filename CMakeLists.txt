@@ -10,16 +10,17 @@ set(CMAKE_C_STANDARD 99)
 
 # Paths for dependencies
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
-set(LUNASVG_DIR ${CMAKE_SOURCE_DIR}/external/lunasvg)
 set(GLFW_DIR ${CMAKE_SOURCE_DIR}/external/glfw)
 set(GLAD_DIR ${CMAKE_SOURCE_DIR}/external/glad)
+set(THORVG_DIR ${CMAKE_SOURCE_DIR}/external/thorvg)
+set(THORVG_BUILD_DIR ${CMAKE_BINARY_DIR}/thorvg_build) # Ensure build dir is separate
 
 # Include directories
 include_directories(
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
-    ${LUNASVG_DIR}/include
     ${GLAD_DIR}/include
+    ${THORVG_DIR}/inc
 )
 
 # Source files for the project
@@ -42,14 +43,30 @@ target_include_directories(glad PUBLIC ${GLAD_DIR}/include)
 # Add GLFW library (as a submodule)
 add_subdirectory(${GLFW_DIR})
 
-# Add LunaSVG library (another submodule)
-add_subdirectory(${LUNASVG_DIR} lunasvg)
+# Build ThorVG using ExternalProject
+include(ExternalProject)
+ExternalProject_Add(thorvg_project
+    PREFIX ${THORVG_BUILD_DIR} # Ensure prefix is set to build directory
+    SOURCE_DIR ${THORVG_DIR}
+    BINARY_DIR ${THORVG_BUILD_DIR}
+    CONFIGURE_COMMAND meson setup ${THORVG_BUILD_DIR} ${THORVG_DIR} # Corrected paths
+    BUILD_COMMAND ninja -C ${THORVG_BUILD_DIR}
+    INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS ${THORVG_BUILD_DIR}/src/libthorvg.dylib
+)
+
+# Create an interface target for ThorVG dynamic library
+add_library(thorvg_lib SHARED IMPORTED)
+set_target_properties(thorvg_lib PROPERTIES
+    IMPORTED_LOCATION ${THORVG_BUILD_DIR}/src/libthorvg.dylib
+)
+add_dependencies(thorvg_lib thorvg_project)
 
 # Create the executable
 add_executable(DocumentEditor ${SOURCES})
 
 # Link libraries
-target_link_libraries(DocumentEditor PRIVATE lunasvg glad glfw)
+target_link_libraries(DocumentEditor PRIVATE glad glfw thorvg_lib)
 
 # Platform-specific handling (macOS, Windows, etc.)
 if(APPLE)

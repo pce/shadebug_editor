@@ -1,9 +1,9 @@
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/ocornut/imgui.git
-[submodule "external/lunasvg"]
-	path = external/lunasvg
-	url = https://github.com/sammycage/lunasvg.git
 [submodule "external/glfw"]
 	path = external/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "external/thorvg"]
+	path = external/thorvg
+	url = https://github.com/Samsung/thorvg.git

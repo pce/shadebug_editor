@@ -1,149 +1,77 @@
-#include <iostream>
-#include <string>
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include <GLFW/glfw3.h>
 #include <glad/glad.h>
-#include <lunasvg.h>  // LunaSVG library header
+#include <GLFW/glfw3.h>
+#include <thorvg.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
-// Window resize callback
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
-// Function to create an OpenGL texture from LunaSVG Bitmap
-GLuint CreateTextureFromBitmap(const lunasvg::Bitmap& bitmap) {
-    GLuint texture_id = 0;
-    
-    glGenTextures(1, &texture_id); // Generate a texture ID
-    glBindTexture(GL_TEXTURE_2D, texture_id); // Bind the texture
-
-    // Upload pixel data to the texture
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.width(), bitmap.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap.data());
-
-    // Set texture parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0); // Unbind the texture
-
-    return texture_id;
-}
-
-// Render the SVG and upload it as a texture
-bool RenderSVG(const std::string& svg_data, float width, float height, ImDrawList* draw_list, ImVec2 canvas_p0, ImVec2 canvas_p1) {
-    using namespace lunasvg;
-
-    auto document = Document::loadFromData(svg_data);
-    if (!document) {
-        std::cerr << "Failed to load SVG document" << std::endl;
+// Function to initialize ThorVG
+bool initializeThorVG()
+{
+    // Initialize ThorVG with software engine and 0 threads
+    if (tvg::Initializer::init(0, tvg::CanvasEngine::Sw) != tvg::Result::Success) {
         return false;
     }
-
-    // Render the SVG document to a bitmap
-    auto bitmap = document->renderToBitmap(width, height);
-    if (bitmap.width() == 0 || bitmap.height() == 0) {
-        std::cerr << "Failed to render SVG to a valid bitmap" << std::endl;
-        return false;
-    }
-
-    // Create an OpenGL texture from the bitmap
-    GLuint texture_id = CreateTextureFromBitmap(bitmap);
-    if (texture_id == 0) {
-        std::cerr << "Failed to create OpenGL texture from SVG bitmap" << std::endl;
-        return false;
-    }
-
-    // Render the texture in ImGui
-    draw_list->AddImage((ImTextureID)(uintptr_t)texture_id, canvas_p0, canvas_p1);
-
-    // Cleanup the texture (optional, depending on how you manage textures)
-    glDeleteTextures(1, &texture_id);
-
     return true;
 }
 
-int main() {
-    std::cout << "Document Editor Initialized!" << std::endl;
+int main()
+{
+    // Initialize ThorVG
+    if (!initializeThorVG()) {
+        return -1;
+    }
 
     // Initialize GLFW
     if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
 
-    // Set OpenGL version (macOS requires >= 3.2)
+    // Configure GLFW to use OpenGL 3.2 Core Profile
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Required on macOS
-#endif
-
-    // Create a window
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Document Editor", nullptr, nullptr);
-    if (!window) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
+    // Create a GLFW window
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Document Editor", NULL, NULL);
+    if (window == NULL) {
         glfwTerminate();
         return -1;
     }
-
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSwapInterval(1); // Enable vsync
 
-    // Initialize ImGui
+    // Initialize OpenGL loader (GLAD)
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        return -1;
+    }
+
+    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    // Setup Dear ImGui style
     ImGui::StyleColorsDark();
 
-    // Set up ImGui for GLFW and OpenGL
+    // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330");
-
-    // SVG data (for testing, use a simple SVG string)
-    static std::string svg_data = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'>"
-                                  "<rect x='10' y='10' width='80' height='80' fill='blue'/></svg>";
+    ImGui_ImplOpenGL3_Init("#version 150"); // Update GLSL version
 
     // Main loop
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window))
+    {
+        // Poll and handle events (inputs, window resize, etc.)
         glfwPollEvents();
 
-        // Start ImGui frame
+        // Start the ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // ImGui content
-        ImGui::Begin("Document Editor");
-        ImGui::Text("Hello, world!");
-        ImGui::End();
-
-        // Page Preview panel
-        static float scale = 1.0f;  // Scaling factor
-        static int page_width = 210; // DIN A4 width in mm
-        static int page_height = 297; // DIN A4 height in mm
-
-        ImGui::Begin("Page Preview");
-        ImGui::SliderFloat("Scale", &scale, 0.1f, 2.0f, "Scale = %.1f");
-        ImGui::SliderInt("Width (mm)", &page_width, 100, 300);
-        ImGui::SliderInt("Height (mm)", &page_height, 100, 400);
-        ImGui::Text("Preview Area");
-
-        // Calculate the canvas position and size
-        ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();
-        ImVec2 canvas_size(page_width * scale, page_height * scale);
-        ImVec2 canvas_p1(canvas_p0.x + canvas_size.x, canvas_p0.y + canvas_size.y);
-
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(255, 255, 255, 255), 0.0f, ImDrawFlags_None, 2.0f);
-
-        // Render SVG within the page
-        if (!RenderSVG(svg_data, canvas_size.x, canvas_size.y, draw_list, canvas_p0, canvas_p1)) {
-            std::cerr << "Failed to render SVG." << std::endl;
-        }
-
+        // Your rendering code here
+        ImGui::Begin("Hello, world!");
+        ImGui::Text("This is some useful text.");
         ImGui::End();
 
         // Rendering
@@ -151,7 +79,7 @@ int main() {
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -162,8 +90,12 @@ int main() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    // Terminate ThorVG
+    tvg::Initializer::term();
 
     return 0;
 }
