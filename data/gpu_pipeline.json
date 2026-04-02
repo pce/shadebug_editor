@@ -1,0 +1,300 @@
+{
+  "version": 1,
+  "comment": "GPU pipeline registry. Loaded at startup by App::register_default_shaders(). Each entry registers a named shader in ShaderRegistry. 'roles' lists which document layers / elements this pipeline is used to draw.",
+
+  "pipelines": [
+    {
+      "name": "rect",
+      "type": "rect",
+      "description": "Instanced SDF rounded-rect pipeline. Used for all solid fills, borders and page backgrounds.",
+      "roles": ["page_background", "element_fill", "element_border"],
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/rect.vert.metal",
+          "fragment": "data/shaders/msl/rect.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/rect.vert.glsl",
+          "fragment": "data/shaders/glsl/rect.frag.glsl"
+        },
+        "hlsl": {
+          "vertex":   "data/shaders/hlsl/rect.vert.hlsl",
+          "fragment": "data/shaders/hlsl/rect.frag.hlsl"
+        }
+      },
+      "draw": {
+        "page_background": {
+          "rect":   [0, 0, 1, 1],
+          "fill":   [0.15, 0.15, 0.18, 1.0],
+          "border": [0.25, 0.25, 0.30, 1.0],
+          "corner_radius": 4.0,
+          "border_width":  1.5
+        }
+      }
+    },
+    {
+      "name": "vignette",
+      "type": "effect",
+      "level": "beginner",
+      "description": "Animated color gradient (deep purple to ocean blue) with pulsing radial vignette.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/vignette.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/vignette.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "dof",
+      "type": "effect",
+      "level": "beginner",
+      "description": "Depth-of-field bokeh: 8 animated light sources with blur radius proportional to depth offset from focal plane.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/dof.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/dof.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "edgedetect",
+      "type": "effect",
+      "level": "beginner",
+      "description": "Sobel edge detection on a procedural checker+sine scene, warm yellow-orange edges on black.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/edgedetect.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/edgedetect.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "motion",
+      "type": "effect",
+      "level": "intermediate",
+      "description": "Animated UV distortion / flow field with colored concentric rings at two orientations.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/motion.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/motion.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "perlin",
+      "type": "effect",
+      "level": "intermediate",
+      "description": "Three-zone Perlin noise showcase: raw gnoise, colored 4-octave fbm, domain-warped fbm.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/perlin.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/perlin.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "perlin_motion",
+      "type": "effect",
+      "level": "intermediate",
+      "description": "Scrolling domain-warped fbm creating blue-green-cyan flowing liquid.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/perlin_motion.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/perlin_motion.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "stylized_water",
+      "type": "effect",
+      "level": "advanced",
+      "description": "Multi-octave animated Perlin water surface with refraction UV distortion, foam lines, and sky reflection.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/stylized_water.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/stylized_water.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "ocean",
+      "type": "effect",
+      "level": "advanced",
+      "description": "6-octave fbm ocean with two wave directions, Fresnel effect, foam white caps, and sky gradient.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/ocean.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/ocean.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "flatinize",
+      "type": "effect",
+      "level": "intermediate",
+      "description": "fbm quantized into 5 flat color bands with smooth transitions — flat design aesthetic.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/flatinize.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/flatinize.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "cartoonize",
+      "type": "effect",
+      "level": "intermediate",
+      "description": "Posterized fbm base with Sobel outlines — cartoon / cel-shading look.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/cartoonize.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/cartoonize.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "clouds",
+      "type": "effect",
+      "level": "advanced",
+      "description": "6-octave domain-warped fbm clouds: white-cream centers, soft grey edges, sky blue background, drifting animation.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/clouds.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/clouds.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "universe",
+      "type": "effect",
+      "level": "advanced",
+      "description": "Hash starfield with twinkle, multi-color fbm nebula across R/G/B channels, cluster regions, subtle rotation.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/universe.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/universe.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "galaxy",
+      "type": "effect",
+      "level": "advanced",
+      "description": "Polar-coord spiral arms, bright core glow, dust lanes fbm, hash stars, outer halo.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/galaxy.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/galaxy.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "galaxy_modular",
+      "type": "effect",
+      "level": "advanced",
+      "description": "Polar-coord spiral arms, bright core glow, dust lanes fbm, hash stars, outer halo.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/mod_galaxy.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/mod_galaxy.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "planet",
+      "type": "effect",
+      "level": "advanced",
+      "description": "Planet disc with fbm surface (continents/ocean), polar caps, atmosphere glow, diffuse lighting, star background, slow rotation.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/planet.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/planet.frag.glsl"
+        }
+      }
+    },
+    {
+      "name": "mod_blackhole",
+      "type": "effect",
+      "level": "advanced",
+      "description": "Physically-inspired black hole: Schwarzschild geodesic ray bending (80-step Euler ODE), Shakura-Sunyaev accretion disk with Doppler beaming, photon-sphere ring (r=1.5rs), gravitationally lensed star/nebula background, cinematic orbit camera, ACES tonemapping. Modules: lib/blackhole.metal + lib/camera.metal.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/mod_blackhole.frag.metal"
+        }
+      }
+    },
+    {
+      "name": "mod_dof",
+      "type": "effect",
+      "level": "advanced",
+      "description": "Thin-lens Depth of Field camera: golden-angle aperture sampling (16 samples/px), focal-distance sweep that racks focus through near/mid/far orbs, physically-correct aperture ray generation (all rays converge at focal plane). Background: per-channel fbm nebula + 2-layer star field. Module: lib/camera.metal.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/mod_dof.frag.metal"
+        }
+      }
+    }
+  ]
+}

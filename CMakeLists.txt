@@ -1,80 +1,97 @@
-cmake_minimum_required(VERSION 3.15)
-project(DocumentEditor VERSION 1.0 LANGUAGES CXX C)
+cmake_minimum_required(VERSION 3.25)
+project(Shadebug VERSION 0.1.0 LANGUAGES CXX C OBJCXX)
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+# ── C++ standard (targets override this with cxx_std_23) ─────────────────────
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
 
-# Set C standard (if necessary, although default is usually fine)
-set(CMAKE_C_STANDARD 99)
+# ── FetchContent ─────────────────────────────────────────────────────────────
+include(FetchContent)
+set(FETCHCONTENT_QUIET OFF)
 
-# Paths for dependencies
-set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
-set(GLFW_DIR ${CMAKE_SOURCE_DIR}/external/glfw)
-set(GLAD_DIR ${CMAKE_SOURCE_DIR}/external/glad)
-set(THORVG_DIR ${CMAKE_SOURCE_DIR}/external/thorvg)
-set(THORVG_BUILD_DIR ${CMAKE_BINARY_DIR}/thorvg_build) # Ensure build dir is separate
+# sokol — use existing submodule (no build needed, header-only)
+set(SOKOL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/sokol"
+    CACHE PATH "sokol single-header directory")
 
-# Include directories
-include_directories(
-    ${IMGUI_DIR}
-    ${IMGUI_DIR}/backends
-    ${GLAD_DIR}/include
-    ${THORVG_DIR}/inc
+# imgui — docking branch tip (pinned to latest as of 2026-04-03)
+# f5f6ca07 = tip of 'docking' branch with ImGui 1.92.x + RendererHasTextures
+FetchContent_Declare(imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG        f5f6ca07be7ce0ea9eed6c04d55833bac3f6b50b
+    GIT_SHALLOW    TRUE
 )
 
-# Source files for the project
-set(SOURCES
-    src/main.cpp
-    ${IMGUI_DIR}/imgui.cpp
-    ${IMGUI_DIR}/imgui_draw.cpp
-    ${IMGUI_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/imgui_tables.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+# nlohmann/json — latest release
+FetchContent_Declare(nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.12.0
+    GIT_SHALLOW    TRUE
 )
 
-# Add GLAD library (ensure it's added as a C library)
-add_library(glad STATIC ${GLAD_DIR}/src/glad.c)
-
-# Make sure to link glad correctly
-target_include_directories(glad PUBLIC ${GLAD_DIR}/include)
-
-# Add GLFW library (as a submodule)
-add_subdirectory(${GLFW_DIR})
-
-# Build ThorVG using ExternalProject
-include(ExternalProject)
-ExternalProject_Add(thorvg_project
-    PREFIX ${THORVG_BUILD_DIR} # Ensure prefix is set to build directory
-    SOURCE_DIR ${THORVG_DIR}
-    BINARY_DIR ${THORVG_BUILD_DIR}
-    CONFIGURE_COMMAND meson setup ${THORVG_BUILD_DIR} ${THORVG_DIR} # Corrected paths
-    BUILD_COMMAND ninja -C ${THORVG_BUILD_DIR}
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${THORVG_BUILD_DIR}/src/libthorvg.dylib
+# stb — latest master (no release tags; pinned commit 2026-04-03)
+FetchContent_Declare(stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG        28d546d5eb77d4585506a20480f4de2e706dff4c
+    GIT_SHALLOW    TRUE
 )
 
-# Create an interface target for ThorVG dynamic library
-add_library(thorvg_lib SHARED IMPORTED)
-set_target_properties(thorvg_lib PROPERTIES
-    IMPORTED_LOCATION ${THORVG_BUILD_DIR}/src/libthorvg.dylib
+# ImGuiFileDialog — pure-ImGui cross-platform file chooser
+# (macOS / Linux / Windows / Emscripten / Android; also works on iOS via
+#  std::filesystem sandbox navigation — no native iOS picker)
+FetchContent_Declare(ImGuiFileDialog
+    GIT_REPOSITORY https://github.com/aiekick/ImGuiFileDialog.git
+    GIT_TAG        d0e97b2adc3d3452d72c750c7305dc0291acd052
+    GIT_SHALLOW    FALSE
 )
-add_dependencies(thorvg_lib thorvg_project)
 
-# Create the executable
-add_executable(DocumentEditor ${SOURCES})
+FetchContent_MakeAvailable(imgui nlohmann_json stb ImGuiFileDialog)
 
-# Link libraries
-target_link_libraries(DocumentEditor PRIVATE glad glfw thorvg_lib)
+set(STB_INCLUDE_DIR "${stb_SOURCE_DIR}" CACHE PATH "stb single-headers directory")
+set(IGFD_INCLUDE_DIR "${imguifiledialog_SOURCE_DIR}" CACHE PATH "ImGuiFileDialog source directory")
 
-# Platform-specific handling (macOS, Windows, etc.)
-if(APPLE)
-    target_link_libraries(DocumentEditor PRIVATE "-framework OpenGL" "-framework Cocoa" "-framework IOKit" "-framework CoreFoundation")
-elseif(EMSCRIPTEN)
-    target_compile_definitions(DocumentEditor PUBLIC -DGL_ES)
-    set(CMAKE_EXECUTABLE_SUFFIX ".html")
-else()
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(DocumentEditor PRIVATE OpenGL::GL)
+# ImGuiFileDialog's own CMakeLists.txt doesn't know about our imgui target —
+# give it the header directory so it compiles without errors.
+target_include_directories(ImGuiFileDialog PRIVATE ${imgui_SOURCE_DIR})
+
+# ── imgui static library ──────────────────────────────────────────────────────
+add_library(imgui STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
+)
+target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+target_compile_features(imgui PRIVATE cxx_std_17)
+# Suppress warnings in third-party code
+target_compile_options(imgui PRIVATE
+    $<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-w>
+    $<$<CXX_COMPILER_ID:MSVC>:/w>
+)
+
+# ── DuckDB (optional) ─────────────────────────────────────────────────────────
+set(DUCKDB_FOUND FALSE)
+if(ENABLE_DUCKDB)
+    find_library(DUCKDB_LIB NAMES duckdb libduckdb)
+    find_path(DUCKDB_INCLUDE NAMES duckdb.hpp duckdb.h)
+
+    if(DUCKDB_LIB AND DUCKDB_INCLUDE)
+        add_library(DuckDB UNKNOWN IMPORTED)
+        set_target_properties(DuckDB PROPERTIES
+            IMPORTED_LOCATION           "${DUCKDB_LIB}"
+            INTERFACE_INCLUDE_DIRECTORIES "${DUCKDB_INCLUDE}"
+        )
+        set(DUCKDB_FOUND TRUE)
+        message(STATUS "DuckDB found: ${DUCKDB_LIB}")
+    else()
+        message(WARNING
+            "DuckDB not found — disabling.\n"
+            "Install DuckDB and re-run cmake, or set DUCKDB_LIB + DUCKDB_INCLUDE.")
+        set(ENABLE_DUCKDB OFF)
+    endif()
 endif()
+
+# ── Application ───────────────────────────────────────────────────────────────
+add_subdirectory(src)
+add_subdirectory(tests)

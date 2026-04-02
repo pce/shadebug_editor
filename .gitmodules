@@ -1,9 +1,3 @@
-[submodule "external/imgui"]
-	path = external/imgui
-	url = https://github.com/ocornut/imgui.git
-[submodule "external/glfw"]
-	path = external/glfw
-	url = https://github.com/glfw/glfw.git
-[submodule "external/thorvg"]
-	path = external/thorvg
-	url = https://github.com/Samsung/thorvg.git
+[submodule "external/sokol"]
+path = external/sokol
+url = https://github.com/floooh/sokol

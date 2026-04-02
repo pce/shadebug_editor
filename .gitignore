@@ -8,3 +8,5 @@ CMakeCache.txt
 imgui.ini
 
 external/
+
+.DS_Store

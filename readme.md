@@ -1,34 +1,24 @@
 
 
-## Build
 
-    git submodule update --init --recursive
- 
-    mkdir build
-    cd build
-    cmake ..
-    make
+> The trick is: push almost everything to the GPU, and keep the CPU side as a thin command buffer.
 
 
+Building the app:
 
-# Setup from Scratch
+        mkdir build && cd build && cmake .. && make -j
 
-Already added Submodules
+or
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-    git submodule add https://github.com/ocornut/imgui.git external/imgui
-    git submodule add https://github.com/sammycage/lunasvg.git external/lunasvg
-    git submodule add https://github.com/glfw/glfw.git external/glfw
+or with presets:
+        cmake --preset default
 
-
-Update Submodules
-
-    git submodule update --init --recursive
-
-
-## macOS 
-
-Install CMake and ddd CMake to the PATH
-
-    PATH="/Applications/CMake.app/Contents/bin":"$PATH"
+Then:
+        cmake --build build -j
 
 
+Modular Shaders
+
+- Shakura-Sunyaev temperature gradient
+- ...
