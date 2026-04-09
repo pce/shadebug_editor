@@ -8,14 +8,14 @@
 #include <vector>
 namespace shadebug::renderer {
 
-// ── PipelineType ──────────────────────────────────────────────────────────────
+// PipelineType
 
 enum class PipelineType {
     Rect,    ///< Instanced SDF rounded-rect pipeline (GpuRenderer)
     Effect,  ///< Fullscreen procedural / post-process pipeline (EffectRenderer)
 };
 
-// ── ShaderEntry ───────────────────────────────────────────────────────────────
+// ShaderEntry
 
 struct ShaderEntry {
     std::string name;
@@ -28,7 +28,7 @@ struct ShaderEntry {
     PipelineType pipeline_type = PipelineType::Rect;
 };
 
-// ── ShaderRegistry ────────────────────────────────────────────────────────────
+// ShaderRegistry
 //
 //  Flat list of named shader pairs.  One entry is "selected"; any listener
 //  registered via on_selection_change() is called immediately when the
@@ -41,7 +41,7 @@ class ShaderRegistry {
 public:
     static ShaderRegistry& get();
 
-    // ── Registration ─────────────────────────────────────────────────────────
+    // Registration
 
     /// Add a shader from in-memory strings.
     int add(std::string name, std::string vs_src, std::string fs_src);
@@ -55,33 +55,31 @@ public:
     /// Reload a shader entry from disk (if it has paths).
     bool reload(int idx);
 
-    // ── Access ────────────────────────────────────────────────────────────────
+    // Access
+    int  count()    const noexcept { return static_cast<int>(entries_.size()); }
+    bool empty()    const noexcept { return entries_.empty(); }
 
-    [[nodiscard]] int  count()    const noexcept { return static_cast<int>(entries_.size()); }
-    [[nodiscard]] bool empty()    const noexcept { return entries_.empty(); }
+    const ShaderEntry& entry(int idx) const { return entries_.at(static_cast<std::size_t>(idx)); }
+    ShaderEntry&       entry(int idx)       { return entries_.at(static_cast<std::size_t>(idx)); }
 
-    [[nodiscard]] const ShaderEntry& entry(int idx) const { return entries_.at(static_cast<std::size_t>(idx)); }
-    [[nodiscard]] ShaderEntry&       entry(int idx)       { return entries_.at(static_cast<std::size_t>(idx)); }
+    // Selection
 
-    // ── Selection ─────────────────────────────────────────────────────────────
+    int  selected()          const noexcept { return selected_; }
+    bool has_selection()     const noexcept { return selected_ >= 0; }
 
-    [[nodiscard]] int  selected()          const noexcept { return selected_; }
-    [[nodiscard]] bool has_selection()     const noexcept { return selected_ >= 0; }
-
-    [[nodiscard]] const ShaderEntry* selected_entry() const noexcept {
+    const ShaderEntry* selected_entry() const noexcept {
         return selected_ >= 0 ? &entries_[static_cast<std::size_t>(selected_)] : nullptr;
     }
 
     void select(int idx);
 
-    // ── Change listener (signal pattern) ─────────────────────────────────────
-
+    // Change listener (signal pattern)
     using Listener = std::function<void(int idx, const ShaderEntry&)>;
 
     int  add_listener(Listener fn);
     void remove_listener(int handle);
 
-    [[nodiscard]] const std::string& last_error() const noexcept { return last_error_; }
+    const std::string& last_error() const noexcept { return last_error_; }
 
     /// Update in-memory shader sources (called by text editor on save).
     void update_sources(int idx, std::string_view vs, std::string_view fs);
@@ -89,7 +87,7 @@ public:
     /// Write a single shader stage back to its on-disk path.
     /// tab_idx 0 → vertex file, 1 → fragment file.
     /// Returns true on success; last_error() contains the reason on failure.
-    [[nodiscard]] bool save_to_disk(int idx, int tab_idx, std::string_view src) noexcept;
+    bool save_to_disk(int idx, int tab_idx, std::string_view src) noexcept;
 
 private:
     ShaderRegistry()  = default;
