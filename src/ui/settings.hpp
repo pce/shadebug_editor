@@ -25,6 +25,7 @@ struct PanelSettings {
     bool show_text_editor   = false;
     bool show_shader_list   = false;
     bool show_shader_render = false;
+    bool show_sdf_scene     = false;
 };
 
 // ── Settings ──────────────────────────────────────────────────────────────────

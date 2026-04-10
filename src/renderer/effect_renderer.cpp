@@ -37,6 +37,7 @@ void EffectRenderer::flush(float time, float w, float h, bool offscreen) noexcep
 
     const EffectUniforms u{ w, h, time, 0.f };
     sg_apply_uniforms(0, SG_RANGE(u));
+    sg_apply_uniforms(1, SG_RANGE(custom_params_));
 
     sg_draw(0, 6, 1);
 }
@@ -61,6 +62,22 @@ sg_shader EffectRenderer::make_shader(std::string_view vs, std::string_view fs) 
         .glsl_uniforms = {
             [0] = { .type = SG_UNIFORMTYPE_FLOAT2, .glsl_name = "iResolution" },
             [1] = { .type = SG_UNIFORMTYPE_FLOAT,  .glsl_name = "iTime"       },
+        },
+    };
+
+    // Block 1: custom shader params (64 bytes = 4×float4).
+    // Shaders opt-in by declaring: constant ParamUniforms& p [[buffer(1)]]
+    // Shaders that don't declare it silently ignore the bound buffer.
+    d.uniform_blocks[1] = {
+        .stage  = SG_SHADERSTAGE_FRAGMENT,
+        .size   = sizeof(ParamUniforms),
+        .msl_buffer_n      = 1,
+        .hlsl_register_b_n = 1,
+        .glsl_uniforms = {
+            [0] = { .type = SG_UNIFORMTYPE_FLOAT4, .glsl_name = "iParams0" },
+            [1] = { .type = SG_UNIFORMTYPE_FLOAT4, .glsl_name = "iParams1" },
+            [2] = { .type = SG_UNIFORMTYPE_FLOAT4, .glsl_name = "iParams2" },
+            [3] = { .type = SG_UNIFORMTYPE_FLOAT4, .glsl_name = "iParams3" },
         },
     };
 

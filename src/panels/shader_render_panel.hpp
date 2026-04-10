@@ -2,6 +2,7 @@
 
 #include "../renderer/draw_ctx.hpp"
 #include "../renderer/scene_renderer_3d.hpp"
+#include "../renderer/shader_params.hpp"
 #include "sokol_gfx.h"
 #include "imgui.h"
 
@@ -89,6 +90,8 @@ private:
     bool                          show_sdf_overlay_ = false;
     shadebug::renderer::DrawCtx   overlay_ctx_;         ///< SDF HUD geometry
 
+    bool                          show_params_ = true;  ///< toggle param panel sidebar
+
     void ensure_render_target(int w, int h);
     void render_scene(shadebug::renderer::GpuRenderer& gpu_renderer, int w, int h);
     void render_effect(shadebug::renderer::EffectRenderer& er, int w, int h);
@@ -101,6 +104,11 @@ private:
     void render_sdf_overlay(shadebug::renderer::GpuRenderer& gpu_renderer, int w, int h);
 
     static void draw_fallback_pattern(ImVec2 origin, ImVec2 size);
+
+    /// Draw interactive ImGui widgets for a shader's param list.
+    /// Returns true if any value was changed by the user.
+    static bool draw_params_panel(std::vector<shadebug::renderer::ShaderParam>& params,
+                                  float time);
 
     /// Mini XYZ-axis indicator drawn in the bottom-right corner of the 3D viewport.
     /// Replaces the need for imGuIZMO.quat for basic orientation feedback.

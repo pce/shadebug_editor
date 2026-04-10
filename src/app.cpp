@@ -9,6 +9,7 @@
 #include "utils.hpp"
 #include "platform.hpp"
 #include "renderer/shader_registry.hpp"
+#include "renderer/shader_params.hpp"
 #include "renderer/shaders.hpp"
 
 #include "sokol_gfx.h"
@@ -40,6 +41,7 @@ void Panels::from_settings(const ui::PanelSettings& s) noexcept {
     show_text_editor   = s.show_text_editor;
     show_shader_list   = s.show_shader_list;
     show_shader_render = s.show_shader_render;
+    show_sdf_scene     = s.show_sdf_scene;
 }
 
 void Panels::to_settings(ui::PanelSettings& s) const noexcept {
@@ -49,6 +51,7 @@ void Panels::to_settings(ui::PanelSettings& s) const noexcept {
     s.show_text_editor   = show_text_editor;
     s.show_shader_list   = show_shader_list;
     s.show_shader_render = show_shader_render;
+    s.show_sdf_scene     = show_sdf_scene;
 }
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
@@ -92,7 +95,8 @@ void App::init_cb() noexcept {
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigDockingWithShift = false;
+    io.ConfigDockingWithShift           = false;
+    io.ConfigWindowsMoveFromTitleBarOnly = true;   // drag only from title bar / border
 
     a.settings.apply_theme(sapp_dpi_scale());
     a.panels.from_settings(a.settings.panels);
@@ -160,6 +164,10 @@ void App::init_cb() noexcept {
 
     a.new_document();
     a.init_fab_navigation();
+
+    // Initialise SDF scene panel (loads shaders from exe_dir/data/shaders/msl/)
+    a.sdf_panel.init(exe);
+
     std::println("Shadebug initialised");
 }
 
@@ -208,6 +216,7 @@ void App::cleanup_cb() noexcept {
 
     a.effect_renderer.cleanup();
     a.gpu_renderer.cleanup();
+    a.sdf_panel.shutdown();
     a.shader_render.destroy_render_target();
     a.image_cache.Clear();
     simgui_shutdown();
@@ -260,6 +269,9 @@ void App::draw_ui() {
     // Offscreen shader render window — uses its own private DrawCtx
     shader_render.draw(panels.show_shader_render, gpu_renderer, effect_renderer);
 
+    // Interactive SDF scene editor
+    sdf_panel.draw(panels.show_sdf_scene);
+
     draw_file_dialog();
     drag_drop.draw(*this);
 
@@ -301,6 +313,7 @@ void App::draw_menu_bar() {
         ImGui::MenuItem(FA_FILE_TEXT "  Text Editor",    nullptr, &panels.show_text_editor);
         ImGui::MenuItem(FA_CODE "  Shader Pipeline",     nullptr, &panels.show_shader_list);
         ImGui::MenuItem(FA_IMAGE "  Shader Render",      nullptr, &panels.show_shader_render);
+        ImGui::MenuItem(FA_MAGIC "  SDF Scene",          nullptr, &panels.show_sdf_scene);
         ImGui::MenuItem(FA_CUBE "  3D Scene",            nullptr, &panels.show_shader_render);
         ImGui::Separator();
         draw_appearance_menu();
@@ -355,9 +368,10 @@ void App::init_fab_navigation() {
     fab_nav_.add_button("view", FA_EYE);
     fab_nav_.add_submenu("view", "layers", FA_LAYER_GROUP, "Layers",     [this]() { panels.show_layers     = !panels.show_layers; });
     fab_nav_.add_submenu("view", "props",  FA_COG,         "Properties", [this]() { panels.show_properties = !panels.show_properties; });
-    fab_nav_.add_submenu("view", "editor", FA_CODE,        "Editor",     [this]() { panels.show_text_editor = !panels.show_text_editor; });
-    fab_nav_.add_submenu("view", "shader", FA_FILM,        "Shaders",    [this]() { panels.show_shader_list = !panels.show_shader_list; });
-    fab_nav_.add_submenu("view", "render3d", FA_CUBE,      "3D Scene",   [this]() {
+    fab_nav_.add_submenu("view", "editor",  FA_CODE,        "Editor",     [this]() { panels.show_text_editor = !panels.show_text_editor; });
+    fab_nav_.add_submenu("view", "shader",  FA_FILM,        "Shaders",    [this]() { panels.show_shader_list = !panels.show_shader_list; });
+    fab_nav_.add_submenu("view", "sdf",     FA_MAGIC,       "SDF Scene",  [this]() { panels.show_sdf_scene   = !panels.show_sdf_scene;   });
+    fab_nav_.add_submenu("view", "render3d", FA_CUBE,       "3D Scene",   [this]() {
         panels.show_shader_render = !panels.show_shader_render;
         if (panels.show_shader_render)
             shader_render.set_mode(RenderMode::Solid3D);
@@ -465,6 +479,26 @@ void App::draw_appearance_menu() {
         ImGui::TextDisabled("e.g. data://fonts/fontawesome-webfont.ttf");
     }
 
+    // ── Layout presets ────────────────────────────────────────────────────────
+    ImGui::SeparatorText("Layout Presets");
+
+    struct PresetEntry { const char* icon; const char* label; LayoutPreset preset; const char* tip; };
+    constexpr PresetEntry kPresets[] = {
+        { FA_CODE,       "Shader Studio",  LayoutPreset::ShaderStudio,
+          "Shader list • Text editor • Render panel" },
+        { FA_IMAGE,      "Canvas + Layers",LayoutPreset::CanvasLayers,
+          "Canvas (wide) • Layers • Properties" },
+        { FA_MAGIC,      "SDF Scene",      LayoutPreset::SdfScene,
+          "SDF editor (wide) • Layers • Properties" },
+    };
+    for (const auto& e : kPresets) {
+        const std::string lbl = std::string(e.icon) + "  " + e.label + "##lp";
+        if (ImGui::MenuItem(lbl.c_str())) {
+            pending_preset_ = e.preset;
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", e.tip);
+    }
+
     ImGui::Separator();
     if (ImGui::MenuItem("Save Settings")) {
         panels.to_settings(settings.panels);
@@ -485,7 +519,7 @@ void App::draw_file_dialog() {
         cfg.flags = ImGuiFileDialogFlags_Modal;
         ImGuiFileDialog::Instance()->OpenDialog(
             "OpenFileDlg", FA_FOLDER_OPEN "  Open File",
-            ".docjson,.json", cfg);
+            ".son,.json", cfg);
         file_dialog_mode_ = FileDialogMode::None;
     }
     if (file_dialog_mode_ == FileDialogMode::SaveAs) {
@@ -499,7 +533,7 @@ void App::draw_file_dialog() {
                      | ImGuiFileDialogFlags_ConfirmOverwrite;
         ImGuiFileDialog::Instance()->OpenDialog(
             "SaveFileDlg", FA_SAVE "  Save As",
-            ".docjson,.json", cfg);
+            ".json", cfg);
         file_dialog_mode_ = FileDialogMode::None;
     }
 
@@ -541,9 +575,104 @@ void App::draw_dockspace() {
     ImGui::Begin("##root_dock", nullptr, kFlags);
     ImGui::PopStyleVar(3);
 
-    ImGui::DockSpace(ImGui::GetID("MainDock"), { 0.f, 0.f },
-                     ImGuiDockNodeFlags_PassthruCentralNode);
+    const ImGuiID dsid = ImGui::GetID("MainDock");
+    ImGui::DockSpace(dsid, { 0.f, 0.f }, ImGuiDockNodeFlags_PassthruCentralNode);
+
+    // Apply a layout preset if one was requested last frame
+    if (pending_preset_.has_value()) {
+        apply_layout_preset(*pending_preset_);
+        pending_preset_.reset();
+    }
+
     ImGui::End();
+}
+
+// ── Layout presets ────────────────────────────────────────────────────────────
+
+void App::apply_layout_preset(LayoutPreset preset) {
+    const ImGuiViewport* vp   = ImGui::GetMainViewport();
+    const ImGuiID        dsid = ImGui::GetID("MainDock");
+
+    ImGui::DockBuilderRemoveNode(dsid);
+    ImGui::DockBuilderAddNode(dsid, ImGuiDockNodeFlags_DockSpace);
+    ImGui::DockBuilderSetNodeSize(dsid, vp->WorkSize);
+
+    switch (preset) {
+
+    // ── Shader Studio ─────────────────────────────────────────────────────────
+    //  [ Shader Pipeline | Text Editor (top) ]
+    //  [                 | Shader Render (btm)]
+    case LayoutPreset::ShaderStudio: {
+        panels.show_layers        = false;
+        panels.show_properties    = false;
+        panels.show_canvas        = false;
+        panels.show_sdf_scene     = false;
+        panels.show_text_editor   = true;
+        panels.show_shader_list   = true;
+        panels.show_shader_render = true;
+
+        ImGuiID left, right;
+        ImGui::DockBuilderSplitNode(dsid, ImGuiDir_Left, 0.22f, &left, &right);
+
+        ImGuiID right_top, right_btm;
+        ImGui::DockBuilderSplitNode(right, ImGuiDir_Up, 0.55f, &right_top, &right_btm);
+
+        ImGui::DockBuilderDockWindow("Shader Pipeline##list",       left);
+        ImGui::DockBuilderDockWindow("###shadebug_text_editor",     right_top);
+        ImGui::DockBuilderDockWindow("Shader Render##render_panel", right_btm);
+        break;
+    }
+
+    // ── Canvas + Layers ───────────────────────────────────────────────────────
+    //  [ Canvas (wide) | Layers     ]
+    //  [               | Properties ]
+    case LayoutPreset::CanvasLayers: {
+        panels.show_layers        = true;
+        panels.show_properties    = true;
+        panels.show_canvas        = true;
+        panels.show_sdf_scene     = false;
+        panels.show_text_editor   = false;
+        panels.show_shader_list   = false;
+        panels.show_shader_render = false;
+
+        ImGuiID center, right;
+        ImGui::DockBuilderSplitNode(dsid, ImGuiDir_Right, 0.22f, &right, &center);
+
+        ImGuiID right_top, right_btm;
+        ImGui::DockBuilderSplitNode(right, ImGuiDir_Up, 0.55f, &right_top, &right_btm);
+
+        ImGui::DockBuilderDockWindow("Canvas",     center);
+        ImGui::DockBuilderDockWindow("Layers",     right_top);
+        ImGui::DockBuilderDockWindow("Properties", right_btm);
+        break;
+    }
+
+    // ── SDF Scene ─────────────────────────────────────────────────────────────
+    //  [ SDF Scene (wide) | Layers     ]
+    //  [                  | Properties ]
+    case LayoutPreset::SdfScene: {
+        panels.show_layers        = true;
+        panels.show_properties    = true;
+        panels.show_canvas        = false;
+        panels.show_sdf_scene     = true;
+        panels.show_text_editor   = false;
+        panels.show_shader_list   = false;
+        panels.show_shader_render = false;
+
+        ImGuiID center, right;
+        ImGui::DockBuilderSplitNode(dsid, ImGuiDir_Right, 0.22f, &right, &center);
+
+        ImGuiID right_top, right_btm;
+        ImGui::DockBuilderSplitNode(right, ImGuiDir_Up, 0.55f, &right_top, &right_btm);
+
+        ImGui::DockBuilderDockWindow("SDF Scene##sdf_panel", center);
+        ImGui::DockBuilderDockWindow("Layers",               right_top);
+        ImGui::DockBuilderDockWindow("Properties",           right_btm);
+        break;
+    }
+    }
+
+    ImGui::DockBuilderFinish(dsid);
 }
 
 void App::draw_status_bar() {
@@ -692,12 +821,16 @@ void App::register_default_shaders() {
                             entry.roles = pip["roles"].get<std::vector<std::string>>();
                         if (pip.contains("draw"))
                             entry.draw_desc = pip["draw"].dump();
+                        if (pip.contains("description"))
+                            entry.description = pip["description"].get<std::string>();
                         if (pip.contains("type")) {
                             const auto t = pip["type"].get<std::string>();
                             entry.pipeline_type = (t == "effect")
                                 ? renderer::PipelineType::Effect
                                 : renderer::PipelineType::Rect;
                         }
+                        if (pip.contains("params"))
+                            entry.params = renderer::parse_shader_params(pip["params"]);
 
                         std::println("[App] Pipeline '{}' loaded from gpu_pipeline.json", name);
                     } else {

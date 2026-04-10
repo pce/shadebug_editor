@@ -1,5 +1,6 @@
 #pragma once
 
+#include "shader_params.hpp"
 #include "sokol_gfx.h"
 #include <string>
 #include <string_view>
@@ -30,6 +31,10 @@ public:
     [[nodiscard]] std::string recompile(std::string_view vs_src,
                                         std::string_view fs_src);
 
+    /// Upload custom shader params before the next flush().
+    void set_custom_params(const ParamUniforms& p) noexcept { custom_params_ = p; }
+    [[nodiscard]] const ParamUniforms& custom_params() const noexcept { return custom_params_; }
+
     [[nodiscard]] bool valid() const noexcept {
         return pip_.id != SG_INVALID_ID && offscreen_pip_.id != SG_INVALID_ID;
     }
@@ -47,6 +52,8 @@ private:
     std::string vs_src_;
     std::string fs_src_;
     std::string last_error_;
+
+    ParamUniforms custom_params_{};   ///< custom user params – written to block 1
 
     [[nodiscard]] static sg_shader   make_shader(std::string_view vs, std::string_view fs);
     [[nodiscard]] static sg_pipeline make_pipeline(sg_shader shd, bool offscreen = false);

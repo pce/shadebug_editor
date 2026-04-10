@@ -17,10 +17,12 @@ set(APP_SOURCES
     panels/text_editor_panel.cpp
     panels/shader_list_panel.cpp
     panels/shader_render_panel.cpp
+    panels/sdf_panel.cpp
     renderer/gpu_renderer.cpp
     renderer/effect_renderer.cpp
     renderer/scene_renderer_3d.cpp
     renderer/shader_registry.cpp
+    renderer/shader_params.cpp
     ui/theme.cpp
     ui/settings.cpp
     ui/image_cache.cpp

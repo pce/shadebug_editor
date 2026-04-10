@@ -94,7 +94,59 @@
           "vertex":   "data/shaders/glsl/effect.vert.glsl",
           "fragment": "data/shaders/glsl/motion.frag.glsl"
         }
-      }
+      },
+      "params": [
+        {
+          "name":    "speed",
+          "label":   "Speed",
+          "type":    "float",
+          "slot":    0,
+          "default": 1.0,
+          "range":   [0.0, 4.0],
+          "motion": { "mode": "oscillate", "amplitude": 0.4, "frequency": 0.2 }
+        },
+        {
+          "name":    "freq1",
+          "label":   "Ring Freq 1",
+          "type":    "float",
+          "slot":    1,
+          "default": 6.0,
+          "range":   [1.0, 20.0]
+        },
+        {
+          "name":    "freq2",
+          "label":   "Ring Freq 2",
+          "type":    "float",
+          "slot":    2,
+          "default": 4.0,
+          "range":   [1.0, 20.0],
+          "motion": {
+            "mode": "keyframes",
+            "loop": true,
+            "keyframes": [
+              { "t": 0.0, "v": 4.0 },
+              { "t": 3.0, "v": 12.0 },
+              { "t": 6.0, "v": 4.0 }
+            ]
+          }
+        },
+        {
+          "name":    "color_a",
+          "label":   "Color A",
+          "type":    "color4",
+          "slot":    4,
+          "default": [0.1, 0.3, 0.9, 1.0],
+          "range":   [0.0, 1.0]
+        },
+        {
+          "name":    "color_b",
+          "label":   "Color B",
+          "type":    "color4",
+          "slot":    8,
+          "default": [0.1, 0.8, 0.5, 1.0],
+          "range":   [0.0, 1.0]
+        }
+      ]
     },
     {
       "name": "perlin",
@@ -295,6 +347,81 @@
           "fragment": "data/shaders/msl/mod_dof.frag.metal"
         }
       }
+    },
+    {
+      "name": "topo",
+      "type": "effect",
+      "level": "intermediate",
+      "description": "Topographic depthmap shader. Procedural FBM terrain with 10 visualisation modes: hypsometric colour ramp, greyscale hillshade (ESRI/GIS style), topo contour lines (thin + index contours), slope map, aspect/orientation compass, combined cartographic, Sobel edge/ridge detector, tangent-space normal map, raw depth, and gradient-magnitude debug. All modes share a common preprocessing pipeline: central-difference gradient → surface normal → Lambert hillshade. Swap depth_field() with a real texture sample to apply to any real depthmap.",
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/topo.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/topo.frag.glsl"
+        }
+      },
+      "params": [
+        {
+          "name":    "mode",
+          "label":   "Mode",
+          "type":    "int",
+          "slot":    0,
+          "default": 5,
+          "range":   [0, 9],
+          "comment": "0=hypsometric 1=hillshade 2=topo-lines 3=slope 4=aspect 5=combined 6=edges 7=normalmap 8=raw-depth 9=gradient"
+        },
+        {
+          "name":    "scale",
+          "label":   "Terrain Scale",
+          "type":    "float",
+          "slot":    1,
+          "default": 3.0,
+          "range":   [0.5, 10.0]
+        },
+        {
+          "name":    "light_az",
+          "label":   "Sun Azimuth °",
+          "type":    "float",
+          "slot":    2,
+          "default": 315.0,
+          "range":   [0.0, 360.0],
+          "motion": { "mode": "oscillate", "amplitude": 30.0, "frequency": 0.05 }
+        },
+        {
+          "name":    "light_el",
+          "label":   "Sun Elevation °",
+          "type":    "float",
+          "slot":    3,
+          "default": 45.0,
+          "range":   [5.0, 85.0]
+        },
+        {
+          "name":    "num_bands",
+          "label":   "Contour Bands",
+          "type":    "float",
+          "slot":    4,
+          "default": 20.0,
+          "range":   [4.0, 60.0]
+        },
+        {
+          "name":    "line_sharp",
+          "label":   "Line Sharpness",
+          "type":    "float",
+          "slot":    5,
+          "default": 0.55,
+          "range":   [0.05, 1.0]
+        },
+        {
+          "name":    "animate",
+          "label":   "Animate Terrain",
+          "type":    "bool",
+          "slot":    7,
+          "default": 0.0
+        }
+      ]
     }
   ]
 }

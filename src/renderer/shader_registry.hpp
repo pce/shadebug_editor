@@ -1,5 +1,6 @@
 #pragma once
 
+#include "shader_params.hpp"
 #include <expected>
 #include <filesystem>
 #include <functional>
@@ -26,6 +27,8 @@ struct ShaderEntry {
     std::vector<std::string> roles;      // e.g. {"page_background","element_fill"}
     std::string draw_desc;               // raw JSON draw config from gpu_pipeline.json
     PipelineType pipeline_type = PipelineType::Rect;
+    std::string description;             // human-readable description from JSON
+    std::vector<ShaderParam> params;     // interactive / animated parameters
 };
 
 // ShaderRegistry

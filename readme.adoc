@@ -4,10 +4,7 @@
 > The trick is: push almost everything to the GPU, and keep the CPU side as a thin command buffer.
 
 
-
-draft of not visual-node based scalar UI, 
-
-"
+draft of a not visual-node based scalar UI
 Spatial UI, not scalar UI.
 
 Simple list based editor with motion/spatial ui for shader:
@@ -16,7 +13,7 @@ Simple list based editor with motion/spatial ui for shader:
 
 == Signed Distance Fields
 
-Understanding Parameters to understand how to draw things on the GPU:
+Motion Input for Parameters to understand how to draw things on the GPU:
 
 - [ ] u_width, u_height
 - [ ] u_corner_radius
@@ -28,7 +25,7 @@ Understanding Parameters to understand how to draw things on the GPU:
 
 
 
-## Pitfalls
+== Pitfalls and Motivations
 
 Shaders needs Tools.
 
@@ -37,8 +34,9 @@ You're building something 5 years ahead of industry standard?
 - GPU-native (not simulating)
 - Functional (not rasterization)
 - Clean (not spaghetti)
-- Efficient (not draw-call overhead)
+- Efficient (no draw-call overhead)
 
+The Pitfalls:
 
 - Deep recursion → stack overflow
 - Complex shaders → GPU performance issues
@@ -72,3 +70,7 @@ Then:
 - Shakura-Sunyaev temperature gradient
 - ...
 
+- Copy Negative Space SDFs?
+- Voronoi SDFs?
+- ...
+- inverse SDFs?

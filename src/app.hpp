@@ -11,6 +11,7 @@
 #include "panels/shader_list_panel.hpp"
 #include "panels/shader_render_panel.hpp"
 #include "panels/svg_preview.hpp"
+#include "panels/sdf_panel.hpp"
 #include "drag_drop_dialog.hpp"
 #include "io/vfs.hpp"
 #include "sokol_app.h"
@@ -37,6 +38,14 @@ struct Selection {
     [[nodiscard]] bool empty()       const { return !has_element() && !has_page(); }
 };
 
+// ── Layout presets ────────────────────────────────────────────────────────────
+
+enum class LayoutPreset {
+    ShaderStudio,   ///< Shader list + text editor + render panel
+    CanvasLayers,   ///< Canvas (wide) + Layers + Properties
+    SdfScene,       ///< SDF scene (wide) + Layers + Properties
+};
+
 // ── Panel visibility ──────────────────────────────────────────────────────────
 //  Mirrors PanelSettings — loaded from / saved to settings.json.
 
@@ -47,6 +56,7 @@ struct Panels {
     bool show_text_editor   = false;
     bool show_shader_list   = false;
     bool show_shader_render = false;
+    bool show_sdf_scene     = false;   ///< SDF interactive scene editor
 
     void from_settings(const ui::PanelSettings& s) noexcept;
     void to_settings(ui::PanelSettings& s)    const noexcept;
@@ -78,6 +88,7 @@ public:
     TextEditorPanel           text_editor;
     ShaderListPanel           shader_list;
     ShaderRenderPanel         shader_render;
+    panels::SdfPanel          sdf_panel;     ///< interactive SDF scene editor
     Panels                    panels;
     Selection                 selection;
     vfs::VirtualFileSystem    vfs;
@@ -108,6 +119,7 @@ private:
     ui::FabNav fab_nav_{"MainNav", ImVec2(40, 100),
                         ui::FabNav::Position::TopRight};
     bool show_menu_bar_ = false;  // toggle: classic top bar vs FAB-only
+    std::optional<LayoutPreset> pending_preset_;  ///< applied next draw_dockspace()
     void init_fab_navigation();
     void draw_fab_nav();
 
@@ -118,6 +130,7 @@ private:
     void draw_dockspace();
     void draw_status_bar();
     void register_default_shaders();
+    void apply_layout_preset(LayoutPreset preset);
     /// Walk data://shaders/{backend}/ via VFS and register any .frag.* files
     /// that are not yet in the ShaderRegistry (i.e. not listed in gpu_pipeline.json).
     void scan_vfs_shaders();

@@ -13,7 +13,7 @@ FileKind classify(const std::filesystem::path& p) {
     auto low = ext;
     std::ranges::transform(low, low.begin(), ::tolower);
 
-    if (low == ".docjson" || low == ".json") return FileKind::Document;
+    if (low == ".json") return FileKind::Document;
     if (low == ".png" || low == ".jpg" || low == ".jpeg" ||
         low == ".bmp" || low == ".tga")      return FileKind::Image;
     if (low == ".db"  || low == ".duckdb" ||

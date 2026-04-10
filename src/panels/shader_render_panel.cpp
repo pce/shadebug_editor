@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <format>
 
 using shadebug::renderer::DrawCtx;
 using shadebug::renderer::UiRect;
@@ -33,7 +34,7 @@ void ShaderRenderPanel::draw(bool& visible,
         return;
     }
 
-    // Toolbar
+    // ── Toolbar ──────────────────────────────────────────────────────────────
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Mode:");
     ImGui::SameLine();
@@ -45,7 +46,7 @@ void ShaderRenderPanel::draw(bool& visible,
         ImGui::SameLine();
     }
 
-    // Extra controls that only make sense in Solid3D mode
+    // Extra controls for Solid3D mode
     if (mode_ == RenderMode::Solid3D) {
         ImGui::TextDisabled("|");
         ImGui::SameLine();
@@ -55,17 +56,35 @@ void ShaderRenderPanel::draw(bool& visible,
         ImGui::SameLine();
     }
 
+    // Params toggle (shown when selected shader has params)
+    const auto* sel_entry = shadebug::renderer::ShaderRegistry::get().selected_entry();
+    const bool  is_effect = sel_entry &&
+        sel_entry->pipeline_type == shadebug::renderer::PipelineType::Effect;
+    const bool  has_params = sel_entry && !sel_entry->params.empty();
+
+    if (has_params) {
+        ImGui::TextDisabled("|");
+        ImGui::SameLine();
+        ImGui::Checkbox("Params##prm_toggle", &show_params_);
+        ImGui::SameLine();
+    }
+
     ImGui::NewLine();
     ImGui::Separator();
 
-    // Viewport content area
-    const ImVec2 avail  = ImGui::GetContentRegionAvail();
-    const int    vp_w   = std::max(16, static_cast<int>(avail.x));
-    const int    vp_h   = std::max(16, static_cast<int>(avail.y));
+    // ── Content area ─────────────────────────────────────────────────────────
+    const ImVec2 avail_full = ImGui::GetContentRegionAvail();
+    constexpr float kParamW = 240.f;
+    const float viewport_w = (has_params && show_params_)
+        ? std::max(16.f, avail_full.x - kParamW - 6.f)
+        : avail_full.x;
+    const ImVec2 avail = { viewport_w, avail_full.y };
+    const int    vp_w  = std::max(16, static_cast<int>(avail.x));
+    const int    vp_h  = std::max(16, static_cast<int>(avail.y));
 
     const ImVec2 cursor = ImGui::GetCursorScreenPos();
 
-    //  Solid3D: self-contained 3D renderer with orbit camera + optional SDF overlay
+    // ── Solid3D path ─────────────────────────────────────────────────────────
     if (mode_ == RenderMode::Solid3D) {
         scene3d_.resize(vp_w, vp_h);
 
@@ -73,14 +92,10 @@ void ShaderRenderPanel::draw(bool& visible,
             draw_fallback_pattern(cursor, avail);
             ImGui::Dummy(avail);
         } else {
-            // Full MVP = proj × view × model
             const float model_angle = auto_rotate_ ? anim_time_ * 0.5f : 0.f;
             scene3d_.render(anim_time_, cam_azimuth_, cam_elevation_, cam_zoom_,
                             model_angle);
 
-            // Option A hybrid: SDF rects composited on top of the 3D scene.
-            // Uses the same colour attachment with LOAD action (no depth) so the
-            // GpuRenderer offscreen pipeline runs without touching the depth buffer.
             if (show_sdf_overlay_ && gpu_renderer.valid()) {
                 populate_sdf_overlay(vp_w, vp_h);
                 render_sdf_overlay(gpu_renderer, vp_w, vp_h);
@@ -88,14 +103,12 @@ void ShaderRenderPanel::draw(bool& visible,
 
             ImGui::Image(simgui_imtextureid(scene3d_.sample_view()), avail);
 
-            // Orientation gizmo overlay (ImGui foreground draw list)
             {
                 ImDrawList* dl = ImGui::GetWindowDrawList();
                 const ImVec2 br { cursor.x + avail.x, cursor.y + avail.y };
                 draw_orientation_gizmo(dl, br, cam_azimuth_, cam_elevation_);
             }
 
-            // Mouse orbit: left-drag to rotate, scroll to zoom
             if (ImGui::IsItemHovered()) {
                 const auto& io = ImGui::GetIO();
                 if (io.MouseDown[0]) {
@@ -112,14 +125,8 @@ void ShaderRenderPanel::draw(bool& visible,
         return;
     }
 
-    // 2D / Effect path
+    // ── 2D / Effect path ─────────────────────────────────────────────────────
 
-    // Determine which pipeline type is selected
-    const auto* sel_entry = shadebug::renderer::ShaderRegistry::get().selected_entry();
-    const bool  is_effect = sel_entry &&
-        sel_entry->pipeline_type == shadebug::renderer::PipelineType::Effect;
-
-    // Fallback if the active renderer is invalid
     const bool active_valid = is_effect ? effect_renderer.valid() : gpu_renderer.valid();
     if (!active_valid) {
         draw_fallback_pattern(cursor, avail);
@@ -130,12 +137,19 @@ void ShaderRenderPanel::draw(bool& visible,
 
     ensure_render_target(vp_w, vp_h);
 
-    // Guard: if the render target is in a bad state, fall back rather than crash.
     if (color_view_.id == SG_INVALID_ID || sample_view_.id == SG_INVALID_ID) {
         draw_fallback_pattern(cursor, avail);
         ImGui::Dummy(avail);
         ImGui::End();
         return;
+    }
+
+    // Pack + upload custom params before rendering
+    if (is_effect && has_params) {
+        auto pu = shadebug::renderer::pack_params(
+            const_cast<std::vector<shadebug::renderer::ShaderParam>&>(sel_entry->params),
+            anim_time_);
+        effect_renderer.set_custom_params(pu);
     }
 
     if (is_effect) {
@@ -145,9 +159,19 @@ void ShaderRenderPanel::draw(bool& visible,
         render_scene(gpu_renderer, vp_w, vp_h);
     }
 
-    // Show as ImGui image using the texture-sampling view
-    const ImTextureID tex_id = simgui_imtextureid(sample_view_);
-    ImGui::Image(tex_id, avail);
+    // ── Viewport image ───────────────────────────────────────────────────────
+    ImGui::Image(simgui_imtextureid(sample_view_), avail);
+
+    // ── Params sidebar ───────────────────────────────────────────────────────
+    if (has_params && show_params_) {
+        ImGui::SameLine();
+        ImGui::BeginChild("##param_sidebar", ImVec2(kParamW, avail_full.y),
+                          ImGuiChildFlags_Borders);
+        draw_params_panel(
+            const_cast<std::vector<shadebug::renderer::ShaderParam>&>(sel_entry->params),
+            anim_time_);
+        ImGui::EndChild();
+    }
 
     ImGui::End();
 }
@@ -404,6 +428,141 @@ void ShaderRenderPanel::draw_orientation_gizmo(ImDrawList* dl,
 }
 
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Params panel
+//
+//  Renders interactive ImGui widgets for each ShaderParam.
+//  Returns true if any value changed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+bool ShaderRenderPanel::draw_params_panel(
+        std::vector<shadebug::renderer::ShaderParam>& params, float time) {
+    using namespace shadebug::renderer;
+
+    bool changed = false;
+
+    ImGui::SeparatorText("Shader Params");
+
+    for (auto& p : params) {
+        ImGui::PushID(p.name.c_str());
+
+        // Motion indicator badge
+        const bool animated = p.motion_enabled && p.motion.mode != MotionMode::Static;
+        if (animated) {
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(80, 200, 120, 255));
+            ImGui::TextUnformatted("~");
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+        }
+
+        // Widget per type
+        switch (p.type) {
+
+        case ParamType::Float:
+            if (ImGui::SliderFloat(p.label.c_str(), &p.val[0], p.range_min, p.range_max))
+                changed = true;
+            if (animated && ImGui::IsItemHovered())
+                ImGui::SetTooltip("Driven by motion (oscillate/keyframes)\nDrag to override");
+            break;
+
+        case ParamType::Float2:
+            if (ImGui::SliderFloat2(p.label.c_str(), p.val, p.range_min, p.range_max))
+                changed = true;
+            break;
+
+        case ParamType::Float3:
+            if (ImGui::SliderFloat3(p.label.c_str(), p.val, p.range_min, p.range_max))
+                changed = true;
+            break;
+
+        case ParamType::Color4:
+            if (ImGui::ColorEdit4(p.label.c_str(), p.val,
+                    ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR))
+                changed = true;
+            break;
+
+        case ParamType::Bool: {
+            bool b = p.val[0] > 0.5f;
+            if (ImGui::Checkbox(p.label.c_str(), &b)) {
+                p.val[0] = b ? 1.f : 0.f;
+                changed  = true;
+            }
+            break;
+        }
+
+        case ParamType::Int: {
+            int iv = static_cast<int>(p.val[0]);
+            if (ImGui::SliderInt(p.label.c_str(), &iv,
+                    static_cast<int>(p.range_min), static_cast<int>(p.range_max))) {
+                p.val[0] = static_cast<float>(iv);
+                changed  = true;
+            }
+            break;
+        }
+
+        default: break;
+        }
+
+        // Context menu: reset / toggle motion
+        if (ImGui::BeginPopupContextItem("##ctx")) {
+            if (ImGui::MenuItem("Reset to default"))  { p.reset_to_default(); changed = true; }
+            if (p.motion_enabled) {
+                const char* lbl = (p.motion.mode == MotionMode::Static)
+                    ? "Enable motion" : "Pause motion";
+                if (ImGui::MenuItem(lbl)) {
+                    p.motion.mode = (p.motion.mode == MotionMode::Static)
+                        ? MotionMode::Oscillate : MotionMode::Static;
+                }
+            }
+            if (ImGui::MenuItem("Copy slot info")) {
+                const auto s = std::format("slot={} // {}", p.slot,
+                    param_type_name(p.type));
+                ImGui::SetClipboardText(s.c_str());
+            }
+            ImGui::EndPopup();
+        }
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+            ImGui::OpenPopup("##ctx");
+
+        // Slot badge (small, right-aligned)
+        {
+            const auto badge = std::format("[{}]", p.slot);
+            const float bw   = ImGui::CalcTextSize(badge.c_str()).x;
+            const float cx   = ImGui::GetContentRegionMax().x - bw;
+            const float cy   = ImGui::GetCursorPosY() - ImGui::GetTextLineHeightWithSpacing();
+            if (cx > 0.f) {
+                ImGui::SetCursorPosX(cx);
+                ImGui::SetCursorPosY(cy);
+                ImGui::TextDisabled("%s", badge.c_str());
+            }
+        }
+
+        ImGui::PopID();
+    }
+
+    ImGui::Spacing();
+    if (ImGui::SmallButton("Reset all")) {
+        for (auto& p : params) p.reset_to_default();
+        changed = true;
+    }
+
+    // Live readout footer
+    ImGui::Spacing();
+    ImGui::SeparatorText("Uniform slots");
+    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(120, 180, 255, 200));
+    const auto pu = pack_params(params, time);
+    const float* raw = reinterpret_cast<const float*>(&pu);
+    for (int i = 0; i < 16; i += 4) {
+        ImGui::TextDisabled("%2d: %.3f %.3f %.3f %.3f",
+            i, raw[i], raw[i+1], raw[i+2], raw[i+3]);
+    }
+    ImGui::PopStyleColor();
+
+    return changed;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Fallback pattern
 //
 //  Drawn entirely with the ImGui draw list when the GPU shader pipeline is

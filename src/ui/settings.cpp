@@ -84,6 +84,7 @@ void from_json(const json& j, PanelSettings& p) {
     p.show_text_editor   = j.value("show_text_editor",   p.show_text_editor);
     p.show_shader_list   = j.value("show_shader_list",   p.show_shader_list);
     p.show_shader_render = j.value("show_shader_render", p.show_shader_render);
+    p.show_sdf_scene     = j.value("show_sdf_scene",     p.show_sdf_scene);
 }
 
 } // anon namespace
