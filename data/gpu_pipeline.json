@@ -349,6 +349,109 @@
       }
     },
     {
+      "name": "vectorgradient",
+      "type": "effect",
+      "level": "intermediate",
+      "description": "Interactive 2-D vector-gradient field visualiser. Five rendering modes — flat arrows, dense HSV direction field, animated flow rings, curl/vortex arrows, iso-contour lines with arrow overlay. The attractor position is driven by mouse/touch input (slots 12-13) so the field reacts live to pointer movement. Press mouse button to toggle attract↔repel. Module: lib/vectorfield.metal.",
+      "interactive": true,
+      "shaders": {
+        "metal": {
+          "vertex":   "data/shaders/msl/effect.vert.metal",
+          "fragment": "data/shaders/msl/vectorgradient.frag.metal"
+        },
+        "glsl": {
+          "vertex":   "data/shaders/glsl/effect.vert.glsl",
+          "fragment": "data/shaders/glsl/vectorgradient.frag.glsl"
+        }
+      },
+      "params": [
+        {
+          "name":    "mode",
+          "label":   "Field Mode",
+          "type":    "int",
+          "slot":    0,
+          "default": 0,
+          "range":   [0, 4],
+          "comment": "0=flat-arrows 1=dense-HSV 2=flow-rings 3=vortex-arrows 4=contour+arrows"
+        },
+        {
+          "name":    "density",
+          "label":   "Density",
+          "type":    "float",
+          "slot":    1,
+          "default": 16.0,
+          "range":   [4.0, 40.0]
+        },
+        {
+          "name":    "arrow_size",
+          "label":   "Arrow Scale",
+          "type":    "float",
+          "slot":    2,
+          "default": 0.75,
+          "range":   [0.2, 1.5]
+        },
+        {
+          "name":    "field_speed",
+          "label":   "Anim Speed",
+          "type":    "float",
+          "slot":    3,
+          "default": 1.0,
+          "range":   [0.0, 4.0],
+          "motion":  { "mode": "static" }
+        },
+        {
+          "name":    "color_field",
+          "label":   "Field Color",
+          "type":    "color4",
+          "slot":    4,
+          "default": [0.30, 0.70, 1.00, 1.0],
+          "range":   [0.0, 1.0]
+        },
+        {
+          "name":    "color_shape",
+          "label":   "Shape Color",
+          "type":    "color4",
+          "slot":    8,
+          "default": [1.00, 0.40, 0.20, 1.0],
+          "range":   [0.0, 1.0]
+        },
+        {
+          "name":    "mouse_x",
+          "label":   "Attractor X",
+          "type":    "float",
+          "slot":    12,
+          "default": 0.5,
+          "range":   [0.0, 1.0],
+          "comment": "Injected automatically from viewport mouse/touch X"
+        },
+        {
+          "name":    "mouse_y",
+          "label":   "Attractor Y",
+          "type":    "float",
+          "slot":    13,
+          "default": 0.5,
+          "range":   [0.0, 1.0],
+          "comment": "Injected automatically from viewport mouse/touch Y"
+        },
+        {
+          "name":    "mouse_pressed",
+          "label":   "Repel Mode",
+          "type":    "bool",
+          "slot":    14,
+          "default": 0.0,
+          "comment": "Set to 1 while mouse button held → field repels instead of attracts"
+        },
+        {
+          "name":    "attractor_r",
+          "label":   "Shape Radius",
+          "type":    "float",
+          "slot":    15,
+          "default": 0.06,
+          "range":   [0.02, 0.30]
+        }
+      ]
+    },
+    {
       "name": "topo",
       "type": "effect",
       "level": "intermediate",

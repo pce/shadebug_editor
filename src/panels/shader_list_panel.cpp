@@ -160,7 +160,14 @@ void ShaderListPanel::draw(bool& visible, TextEditorPanel& editor,
 void ShaderListPanel::sync_editor(int /*idx*/, const shadebug::renderer::ShaderEntry& e,
                                    TextEditorPanel& editor) const {
     const char* hint = lang_hint_for(e);
-    editor.clear(e.name + " — Shader");
+
+    // Use set_title() + set_tab() instead of clear() + set_tab().
+    // clear() destroys all ImGui tab-bar state so the tab bar resets to the
+    // first tab (Vertex) on every shader switch — even if Fragment was active.
+    // set_title() only updates the window display name; set_tab() updates the
+    // buffer in-place if the tab already exists, or appends it if not.
+    // ImGui's tab selection (SelectedTabId) is never touched → active tab stays.
+    editor.set_title(e.name + " — Shader");
     editor.set_tab("Vertex",   e.vs_src, hint);
     editor.set_tab("Fragment", e.fs_src, hint);
 }

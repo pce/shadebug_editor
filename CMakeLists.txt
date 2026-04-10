@@ -14,12 +14,13 @@ set(FETCHCONTENT_QUIET OFF)
 set(SOKOL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/sokol"
     CACHE PATH "sokol single-header directory")
 
-# imgui — docking branch tip (pinned to latest as of 2026-04-03)
-# f5f6ca07 = tip of 'docking' branch with ImGui 1.92.x + RendererHasTextures
+# imgui — docking branch tip (pinned commit 2026-04-03, ImGui 1.92.x + RendererHasTextures)
+# Using URL zip instead of GIT_SHALLOW because GIT_SHALLOW TRUE does not work
+# with bare commit SHAs (shallow clone only fetches branch tips, not arbitrary commits).
 FetchContent_Declare(imgui
-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG        f5f6ca07be7ce0ea9eed6c04d55833bac3f6b50b
-    GIT_SHALLOW    TRUE
+    URL      https://github.com/ocornut/imgui/archive/f5f6ca07be7ce0ea9eed6c04d55833bac3f6b50b.zip
+    URL_HASH MD5=9d9f02366ac7bcac966c54f76f62a242
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
 # nlohmann/json — latest release

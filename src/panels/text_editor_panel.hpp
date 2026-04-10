@@ -37,6 +37,10 @@ public:
     /// Clear all tabs and reset title.
     void clear(std::string_view window_title = "Text Editor");
 
+    /// Change only the window display title — does NOT reset tabs or active tab.
+    /// Use this when switching shaders to avoid resetting ImGui tab-bar state.
+    void set_title(std::string_view title);
+
     /// Add or replace a named tab with initial content. Returns tab index.
     int set_tab(std::string name, std::string_view content,
                 std::string_view lang_hint = {});

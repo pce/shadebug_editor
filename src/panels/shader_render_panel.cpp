@@ -144,6 +144,26 @@ void ShaderRenderPanel::draw(bool& visible,
         return;
     }
 
+    // ── Interactive mouse injection for shaders with mouse_x/mouse_y params ──
+    // Compute normalised viewport UV from current mouse position.
+    // Y is flipped (Metal UV origin = top-left, but we pass 0=bottom convention
+    // matching GLSL fragCoord — the shader uses 1-y internally if needed).
+    if (is_effect && has_params) {
+        const auto& io = ImGui::GetIO();
+        const float nmx = (io.MousePos.x - cursor.x) / static_cast<float>(vp_w);
+        const float nmy = 1.f - (io.MousePos.y - cursor.y) / static_cast<float>(vp_h);
+        const bool  in_vp = nmx >= 0.f && nmx <= 1.f && nmy >= 0.f && nmy <= 1.f;
+        if (in_vp) {
+            auto& params =
+                const_cast<std::vector<shadebug::renderer::ShaderParam>&>(sel_entry->params);
+            for (auto& pm : params) {
+                if (pm.name == "mouse_x")       pm.val[0] = nmx;
+                if (pm.name == "mouse_y")       pm.val[0] = nmy;
+                if (pm.name == "mouse_pressed") pm.val[0] = io.MouseDown[0] ? 1.f : 0.f;
+            }
+        }
+    }
+
     // Pack + upload custom params before rendering
     if (is_effect && has_params) {
         auto pu = shadebug::renderer::pack_params(

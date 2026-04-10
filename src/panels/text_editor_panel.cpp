@@ -31,6 +31,13 @@ void TextEditorPanel::clear(std::string_view window_title) {
     for (auto& t : tabs_) { t = Tab{}; }
 }
 
+void TextEditorPanel::set_title(std::string_view title) {
+    // Update display title only — never touches tab_count_, active_tab_,
+    // or any tab data so ImGui's tab-bar selection state is fully preserved.
+    title_ = title;
+    update_win_id();
+}
+
 void TextEditorPanel::update_win_id() {
     win_id_ = title_;
     // ### (triple-hash) resets ImGui's hash to the seed at this point.

@@ -70,7 +70,7 @@ static float fbm(float2 p, int oct) {
     return v * 0.5 + 0.5;
 }
 
-// ── 2. Golden-angle disk sampler  [lib/camera.metal] ─────────────────────────
+//  2. Golden-angle disk sampler  [lib/camera.metal]
 //
 //  Places N samples on the unit disk with minimal clumping for any N.
 //  Golden angle = 2π(1−1/φ) ≈ 2.3999632 rad (φ = golden ratio).
@@ -85,7 +85,7 @@ static float2 golden_disk(int index, int n) {
     return float2(cos(phi), sin(phi)) * r;
 }
 
-// ── 3. Camera utilities  [lib/camera.metal] ───────────────────────────────────
+// 3. Camera utilities  [lib/camera.metal]
 
 struct CamBasis { float3 right, up, fwd; };
 
@@ -102,7 +102,7 @@ static float3 camera_ray(CamBasis b, float2 uv, float fov_rad) {
     return normalize(b.fwd * fl + uv.x * b.right + uv.y * b.up);
 }
 
-// ── 4. Thin-lens aperture ray  [lib/camera.metal] ────────────────────────────
+//  4. Thin-lens aperture ray  [lib/camera.metal]
 //
 //  1. Find focal_pt = where pinhole ray hits the focal plane.
 //  2. Jitter origin on aperture disk (disk_offset ∈ unit disk, scaled by aperture).
@@ -118,7 +118,7 @@ static float3 aperture_ray(float3 ro_base, float3 rd_pin,
     return normalize(focal_pt - ro_out);
 }
 
-// ── 5. Camera orbit  [lib/camera.metal] ──────────────────────────────────────
+//  5. Camera orbit  [lib/camera.metal]
 static float3 orbit_pos(float3 target, float radius, float tilt,
                         float time, float speed) {
     float a = time * speed;
@@ -127,7 +127,7 @@ static float3 orbit_pos(float3 target, float radius, float tilt,
                            cos(tilt) * sin(a) * radius);
 }
 
-// ── 6. Scene: 3 glowing orbs at different depths + background ─────────────────
+//  6. Scene: 3 glowing orbs at different depths + background
 //
 //  Orbs are coloured spheres with lambertian + specular lighting and an
 //  additive glow halo.  Exact sphere intersection gives correct depth
@@ -263,7 +263,7 @@ static float3 ACES(float3 x) {
                  0.0, 1.0);
 }
 
-// ── 8. Fragment main — thin-lens DoF accumulation ────────────────────────────
+// 8. Fragment main — thin-lens DoF accumulation
 
 fragment float4 fs_main(Varyings in [[stage_in]],
                         constant EffectUniforms& u [[buffer(0)]]) {
@@ -281,7 +281,7 @@ fragment float4 fs_main(Varyings in [[stage_in]],
     CamBasis basis  = camera_basis(eye, target, float3(0.0, 1.0, 0.0));
     float3 rd0      = camera_ray(basis, uv, M_PI_F / 3.0);   // 60° FoV
 
-    // ── Thin-lens parameters ──────────────────────────────────────────────────
+    //  Thin-lens parameters
     //  focal_dist sweeps: near orb (4) → far orb (17) over ~21 seconds.
     //  Watch the depth rack change as focal distance crosses each orb depth.
     float  focal_dist = mix(4.5, 17.5, 0.5 + 0.5 * sin(u.iTime * 0.25));
@@ -298,7 +298,7 @@ fragment float4 fs_main(Varyings in [[stage_in]],
     //  32 = smooth, matches offline renders closely
     const int N_SAMPLES = 16;
 
-    // ── Accumulate N aperture-jittered samples ─────────────────────────────────
+    // Accumulate N aperture-jittered samples
     float3 acc = float3(0.0);
     for (int i = 0; i < N_SAMPLES; i++) {
         float2 disk = golden_disk(i, N_SAMPLES);  // unit disk sample
@@ -310,12 +310,12 @@ fragment float4 fs_main(Varyings in [[stage_in]],
     }
     float3 col = acc / float(N_SAMPLES);
 
-    // ── Subtle in-focus sharpening vignette (optional, comment to remove) ──────
+    //  Subtle in-focus sharpening vignette (optional, comment to remove)
     //  Slightly boost saturation near the focal plane to mimic lens microcontrast.
     float lum    = dot(col, float3(0.299, 0.587, 0.114));
     col          = mix(float3(lum), col, 1.08);  // mild saturation boost
 
-    // ── Tone map + gamma ──────────────────────────────────────────────────────
+    // Tone map + gamma
     col = ACES(col);
     col = pow(max(col, 0.0), float3(0.4545));  // γ = 2.2 decode
 
