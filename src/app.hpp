@@ -120,6 +120,7 @@ private:
                         ui::FabNav::Position::TopRight};
     bool show_menu_bar_ = false;  // toggle: classic top bar vs FAB-only
     std::optional<LayoutPreset> pending_preset_;  ///< applied next draw_dockspace()
+    std::string imgui_ini_path_;  ///< kept alive for io.IniFilename (must outlive ImGui ctx)
     void init_fab_navigation();
     void draw_fab_nav();
 

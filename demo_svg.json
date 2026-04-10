@@ -1,0 +1,121 @@
+{
+  "id": "demo-svg-doc",
+  "title": "SVG Preview Demo",
+  "author": "Shadebug",
+  "active_page_idx": 0,
+  "pages": [
+    {
+      "id": "page-svg-demo",
+      "name": "SVG Examples",
+      "width_mm": 210,
+      "height_mm": 297,
+      "layers": [
+        {
+          "id": "layer-svgs",
+          "name": "SVG Elements",
+          "visible": true,
+          "locked": false,
+          "elements": [
+            {
+              "id": "svg-simple-circle",
+              "name": "Simple Circle",
+              "kind": "svg",
+              "bounds": {
+                "pos": { "x": 10, "y": 10 },
+                "size": { "x": 50, "y": 50 }
+              },
+              "style": {
+                "fill": [1, 1, 1, 1],
+                "stroke": [0, 0, 0, 1],
+                "stroke_width": 1,
+                "opacity": 1,
+                "corner_radius": 0,
+                "font_family": "sans-serif",
+                "font_size": 14,
+                "bold": false,
+                "italic": false
+              },
+              "content": "<svg viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"#ff6b6b\" stroke=\"#c92a2a\" stroke-width=\"2\"/></svg>",
+              "locked": false,
+              "visible": true,
+              "extra": {}
+            },
+            {
+              "id": "svg-rect-ellipse",
+              "name": "Rect and Ellipse",
+              "kind": "svg",
+              "bounds": {
+                "pos": { "x": 70, "y": 10 },
+                "size": { "x": 60, "y": 50 }
+              },
+              "style": {
+                "fill": [1, 1, 1, 1],
+                "stroke": [0, 0, 0, 1],
+                "stroke_width": 1,
+                "opacity": 1,
+                "corner_radius": 0,
+                "font_family": "sans-serif",
+                "font_size": 14,
+                "bold": false,
+                "italic": false
+              },
+              "content": "<svg viewBox=\"0 0 120 100\"><rect x=\"10\" y=\"10\" width=\"40\" height=\"80\" fill=\"#4c6ef5\" stroke=\"#364fc7\" stroke-width=\"1.5\"/><ellipse cx=\"90\" cy=\"50\" rx=\"20\" ry=\"30\" fill=\"#15aabf\" stroke=\"#0b7285\" stroke-width=\"1\"/></svg>",
+              "locked": false,
+              "visible": true,
+              "extra": {}
+            },
+            {
+              "id": "svg-text-colors",
+              "name": "Text with Colors",
+              "kind": "svg",
+              "bounds": {
+                "pos": { "x": 10, "y": 70 },
+                "size": { "x": 120, "y": 40 }
+              },
+              "style": {
+                "fill": [1, 1, 1, 1],
+                "stroke": [0, 0, 0, 1],
+                "stroke_width": 1,
+                "opacity": 1,
+                "corner_radius": 0,
+                "font_family": "sans-serif",
+                "font_size": 14,
+                "bold": false,
+                "italic": false
+              },
+              "content": "<svg viewBox=\"0 0 200 80\"><text x=\"10\" y=\"30\" fill=\"#f06595\" font-size=\"16\">Colored Text</text><text x=\"10\" y=\"60\" fill=\"#2f9e44\" font-size=\"14\">With Different Sizes</text></svg>",
+              "locked": false,
+              "visible": true,
+              "extra": {}
+            },
+            {
+              "id": "svg-combined-shapes",
+              "name": "Combined Shapes",
+              "kind": "svg",
+              "bounds": {
+                "pos": { "x": 10, "y": 120 },
+                "size": { "x": 80, "y": 80 }
+              },
+              "style": {
+                "fill": [1, 1, 1, 1],
+                "stroke": [0, 0, 0, 1],
+                "stroke_width": 1,
+                "opacity": 1,
+                "corner_radius": 0,
+                "font_family": "sans-serif",
+                "font_size": 14,
+                "bold": false,
+                "italic": false
+              },
+              "content": "<svg viewBox=\"0 0 160 160\"><rect x=\"10\" y=\"10\" width=\"140\" height=\"140\" fill=\"#e9ecef\" stroke=\"#495057\" stroke-width=\"2\"/><circle cx=\"50\" cy=\"50\" r=\"25\" fill=\"#ffd43b\" stroke=\"#f59f00\" stroke-width=\"1.5\"/><ellipse cx=\"110\" cy=\"80\" rx=\"30\" ry=\"20\" fill=\"#a5d8ff\" stroke=\"#1971c2\" stroke-width=\"1\"/><text x=\"50\" y=\"130\" fill=\"#2c3e50\" font-size=\"12\">SVG Demo</text></svg>",
+              "locked": false,
+              "visible": true,
+              "extra": {}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

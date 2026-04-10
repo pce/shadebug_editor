@@ -124,12 +124,14 @@ public:
         return resolve_(uri, /*for_write=*/false);
     }
 
-    /// Resolve and verify existence. Returns nullopt (+ warning) if missing.
-    [[nodiscard]] std::optional<std::filesystem::path> find(std::string_view uri) const {
+    /// Resolve and verify existence.
+    /// Returns nullopt if missing; logs a warning unless quiet=true.
+    [[nodiscard]] std::optional<std::filesystem::path>
+    find(std::string_view uri, bool quiet = false) const {
         std::shared_lock lock(mutex_);
         auto p = resolve_(uri, /*for_write=*/false);
         if (!p.empty() && std::filesystem::exists(p)) return p;
-        std::cerr << "[vfs] not found: " << uri << '\n';
+        if (!quiet) std::cerr << "[vfs] not found: " << uri << '\n';
         return std::nullopt;
     }
 

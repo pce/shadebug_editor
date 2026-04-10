@@ -16,6 +16,7 @@
 #include "sokol_glue.h"
 #include "sokol_log.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "misc/cpp/imgui_stdlib.h"
 #include "util/sokol_imgui.h"
 #include "ImGuiFileDialog.h"
@@ -95,8 +96,13 @@ void App::init_cb() noexcept {
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigDockingWithShift           = false;
+    io.ConfigDockingWithShift            = false;
     io.ConfigWindowsMoveFromTitleBarOnly = true;   // drag only from title bar / border
+
+    // Pin imgui.ini next to settings.json (exe dir), not the unpredictable CWD.
+    // The string must outlive the ImGui context, so we store it as a member.
+    a.imgui_ini_path_ = (exe / "imgui.ini").string();
+    io.IniFilename    = a.imgui_ini_path_.c_str();
 
     a.settings.apply_theme(sapp_dpi_scale());
     a.panels.from_settings(a.settings.panels);
@@ -902,8 +908,8 @@ void App::scan_vfs_shaders() {
         // Derive display name: strip the .frag.* suffix
         const std::string base(fname.substr(0, fname.size() - frag_ext.size()));
 
-        // Prefer a same-name vertex shader, then fall back to "effect.vert.*"
-        auto vert_opt = vfs.find(dir_uri + base + std::string(vert_ext));
+        // Prefer a same-name vertex shader (silent probe), then fall back to "effect.vert.*"
+        auto vert_opt = vfs.find(dir_uri + base + std::string(vert_ext), /*quiet=*/true);
         if (!vert_opt) vert_opt = vfs.find(dir_uri + "effect" + std::string(vert_ext));
         if (!vert_opt) {
             std::println("[App] VFS scan: no vertex shader for '{}', skipping", base);
