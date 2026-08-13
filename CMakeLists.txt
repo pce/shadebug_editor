@@ -33,7 +33,7 @@ FetchContent_Declare(nlohmann_json
 # stb — latest master (no release tags; pinned commit 2026-04-03)
 FetchContent_Declare(stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_TAG        28d546d5eb77d4585506a20480f4de2e706dff4c
+    GIT_TAG        2c980bb59875b0d32144a71867fbdebb2f77cd20
     GIT_SHALLOW    TRUE
 )
 
@@ -70,28 +70,6 @@ target_compile_options(imgui PRIVATE
     $<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-w>
     $<$<CXX_COMPILER_ID:MSVC>:/w>
 )
-
-# ── DuckDB (optional) ─────────────────────────────────────────────────────────
-set(DUCKDB_FOUND FALSE)
-if(ENABLE_DUCKDB)
-    find_library(DUCKDB_LIB NAMES duckdb libduckdb)
-    find_path(DUCKDB_INCLUDE NAMES duckdb.hpp duckdb.h)
-
-    if(DUCKDB_LIB AND DUCKDB_INCLUDE)
-        add_library(DuckDB UNKNOWN IMPORTED)
-        set_target_properties(DuckDB PROPERTIES
-            IMPORTED_LOCATION           "${DUCKDB_LIB}"
-            INTERFACE_INCLUDE_DIRECTORIES "${DUCKDB_INCLUDE}"
-        )
-        set(DUCKDB_FOUND TRUE)
-        message(STATUS "DuckDB found: ${DUCKDB_LIB}")
-    else()
-        message(WARNING
-            "DuckDB not found — disabling.\n"
-            "Install DuckDB and re-run cmake, or set DUCKDB_LIB + DUCKDB_INCLUDE.")
-        set(ENABLE_DUCKDB OFF)
-    endif()
-endif()
 
 # ── Application ───────────────────────────────────────────────────────────────
 add_subdirectory(src)
