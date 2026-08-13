@@ -10,3 +10,5 @@ imgui.ini
 external/
 
 .DS_Store
+
+**/.DS_Store

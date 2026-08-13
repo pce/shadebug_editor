@@ -161,7 +161,7 @@ float4 fs_main(VsOut inp) : SV_Target0 {
 }
 )";
 
-// Runtime selection
+// Buildtime *current vs Runtime selection
 [[nodiscard]] inline const char* vert_source() noexcept {
 #if defined(SOKOL_METAL)
     return kMslVert;
